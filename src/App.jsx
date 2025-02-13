@@ -65,7 +65,7 @@ const App = () => {
         <Container maxWidth="sm" style={{ marginTop: '20px', textAlign: 'center' }}>
             <Card>
                 <CardContent>
-                    <Typography variant="h4" gutterBottom>All words {words.length}</Typography>
+                    <Typography variant="h4" gutterBottom>Training all words {words.length}</Typography>
                     {currentWord && (
                         <div>
                             <Typography variant="h6" gutterBottom>
