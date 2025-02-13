@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    Button, TextField, Typography, Card, CardContent, Container, 
-    List, ListItem, ListItemText, IconButton, Dialog, DialogTitle, DialogContent, 
-    Grid 
+import {
+    Button, TextField, Typography, Card, CardContent, Container,
+    List, ListItem, ListItemText, IconButton, Grid,
+    DialogTitle,
+    DialogContent
 } from '@mui/material';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import { words } from '../db/data';
 
 const App = () => {
@@ -16,7 +17,6 @@ const App = () => {
     const [intervalTime, setIntervalTime] = useState(4000);
     const [index, setIndex] = useState(0);
     const [randomMode, setRandomMode] = useState(false);
-    const [openDictionary, setOpenDictionary] = useState(false);
 
     useEffect(() => {
         let timer;
@@ -40,12 +40,23 @@ const App = () => {
         setShowResult(false);
     };
 
-    const getNextWord = (lang) => {
+    const getNextWord = () => {
         if (!words.length) return;
         setIndex((prevIndex) => {
             const nextIndex = (prevIndex + 1) % words.length;
-            setCurrentWord({ ...words[nextIndex], lang });
+            setCurrentWord(words[nextIndex]);
             return nextIndex;
+        });
+        setUserInput('');
+        setShowResult(false);
+    };
+
+    const getPreviousWord = () => {
+        if (!words.length) return;
+        setIndex((prevIndex) => {
+            const prevIndexNew = (prevIndex - 1 + words.length) % words.length;
+            setCurrentWord(words[prevIndexNew]);
+            return prevIndexNew;
         });
         setUserInput('');
         setShowResult(false);
@@ -61,6 +72,11 @@ const App = () => {
         }
     };
 
+    const playAudio = (text) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        speechSynthesis.speak(utterance);
+    };
+
     return (
         <Container maxWidth="sm" style={{ marginTop: '20px', textAlign: 'center' }}>
             <Card>
@@ -70,6 +86,11 @@ const App = () => {
                         <div>
                             <Typography variant="h6" gutterBottom>
                                 {currentWord.lang === 'uz' ? currentWord.uz : currentWord.en}
+                                {currentWord.lang === 'en' && (
+                                    <IconButton onClick={() => playAudio(currentWord.en)}>
+                                        <VolumeUpIcon />
+                                    </IconButton>
+                                )}
                             </Typography>
                             <TextField
                                 variant="outlined"
@@ -83,16 +104,16 @@ const App = () => {
                                 <Typography
                                     variant="body1"
                                     color={
-                                        userInput.toLowerCase() === 
-                                        (currentWord.lang === 'uz' ? currentWord.en.toLowerCase() : currentWord.uz.toLowerCase()) 
-                                        ? 'success.main' 
-                                        : 'error.main'
+                                        userInput.toLowerCase() ===
+                                            (currentWord.lang === 'uz' ? currentWord.en.toLowerCase() : currentWord.uz.toLowerCase())
+                                            ? 'success.main'
+                                            : 'error.main'
                                     }
                                 >
-                                    {userInput} ➝ {currentWord.lang === 'uz' ? currentWord.en : currentWord.uz} 
-                                    {userInput.toLowerCase() === 
-                                    (currentWord.lang === 'uz' ? currentWord.en.toLowerCase() : currentWord.uz.toLowerCase()) 
-                                    ? ' ✅' : ' ❌'}
+                                    {userInput} ➝ {currentWord.lang === 'uz' ? currentWord.en : currentWord.uz}
+                                    {userInput.toLowerCase() ===
+                                        (currentWord.lang === 'uz' ? currentWord.en.toLowerCase() : currentWord.uz.toLowerCase())
+                                        ? ' ✅' : ' ❌'}
                                 </Typography>
                             )}
                         </div>
@@ -115,6 +136,12 @@ const App = () => {
                     <Button variant="contained" color="info" onClick={() => setRandomMode(!randomMode)} style={{ margin: '5px' }}>
                         {randomMode ? 'Auto Random' : 'Auto Sequential'}
                     </Button>
+                    <Button variant="contained" color="default" onClick={getPreviousWord} style={{ margin: '5px' }}>
+                        Previous
+                    </Button>
+                    <Button variant="contained" color="default" onClick={getNextWord} style={{ margin: '5px' }}>
+                        Next
+                    </Button>
                     <TextField
                         type="number"
                         value={intervalTime}
@@ -132,46 +159,84 @@ const App = () => {
                         <List>
                             {savedWords.map((word, index) => (
                                 <ListItem key={index}>
-                                    <ListItemText primary={`${word.en} - ${word.uz}`} />
+                                    {/* <ListItemText primary={`${word.en} - ${word.uz}`} /> */}
+                                    <Typography
+                                        variant="body1"
+                                        fontWeight="bold"
+                                        style={{ flex: 1, textAlign: 'center' }}
+                                    >
+                                        {word.en}
+                                        <IconButton onClick={() => playAudio(word.en)}>
+                                            <VolumeUpIcon />
+                                        </IconButton>
+                                    </Typography>
+                                    <Typography
+                                        variant="body1"
+                                        style={{ flex: 1, textAlign: 'center' }}
+                                    >
+                                        {word.uz}
+                                    </Typography>
                                 </ListItem>
+
                             ))}
                         </List>
                     </CardContent>
                 </Card>
             )}
 
-            <IconButton
-                onClick={() => setOpenDictionary(true)}
-                style={{ position: 'fixed', bottom: 20, right: 20, background: '#1976d2', color: 'white' }}
-            >
-                <MenuBookIcon />
-            </IconButton>
-
-            <Dialog open={openDictionary} onClose={() => setOpenDictionary(false)} fullWidth maxWidth="md">
-                <DialogTitle>📚 Lug‘at</DialogTitle>
-                <DialogContent>
-                    {words.reduce((acc, word, i) => {
-                        if (i % 20 === 0) {
-                            acc.push(
-                                <Typography 
-                                    key={`unit-${i}`} 
-                                    variant="h6" 
-                                    style={{ marginTop: '15px', fontWeight: 'bold' }}
-                                >
-                                    Unit {Math.floor(i / 20) + 1}
-                                </Typography>
-                            );
-                        }
+            <DialogTitle>📚 Lug‘at</DialogTitle>
+            <DialogContent style={{ overflow: 'clip' }}>
+                {words.reduce((acc, word, i) => {
+                    if (i % 20 === 0) {
                         acc.push(
-                            <Grid key={i} container spacing={2} style={{ padding: '5px' }}>
-                                <Grid item xs={6}><Typography>{word.en}</Typography></Grid>
-                                <Grid item xs={6}><Typography>{word.uz}</Typography></Grid>
-                            </Grid>
+                            <Typography
+                                key={`unit-${i}`}
+                                // variant="h6"
+                                variant="h4"
+                                fontWeight="bold"
+                                style={{ flex: 1, textAlign: 'center', marginTop: '40px' }}
+                            >
+                                Unit {Math.floor(i / 20) + 1}
+                            </Typography>
                         );
-                        return acc;
-                    }, [])}
-                </DialogContent>
-            </Dialog>
+                    }
+                    acc.push(
+                        <Grid
+                            key={i}
+                            container
+                            spacing={2}
+                            alignItems="center"
+                            style={{
+                                padding: '10px',
+                                border: '1px solid #ccc',
+                                borderRadius: '12px',
+                                margin: '5px 0',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                overflowX:"unset"
+                            }}
+                        >
+                            <Typography
+                                variant="body1"
+                                fontWeight="bold"
+                                style={{ flex: 1, textAlign: 'center' }}
+                            >
+                                {word.en}
+                                <IconButton onClick={() => playAudio(word.en)}>
+                                    <VolumeUpIcon />
+                                </IconButton>
+                            </Typography>
+                            <Typography
+                                variant="body1"
+                                style={{ flex: 1, textAlign: 'center' }}
+                            >
+                                {word.uz}
+                            </Typography>
+                        </Grid>
+                    );
+                    return acc;
+                }, [])}
+            </DialogContent>
         </Container>
     );
 };
